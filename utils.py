@@ -67,9 +67,30 @@ def return_ranks(accessId : str, start_date : str, end_date : str, match_type : 
     
     return ranks
 
-def plot_ranks(ranks : list, n_players):
+def plot_ranks(ranks : list, n_players, include_retire : bool = False):
     # 리타이어의 경우는 99로 표기되므로, 이를 적절히 표기하는 것이 중요
+    # 현재 구현 버전은 리타이어 기록을 아예 제거함
     # 1등이 높은 것이므로, y axis를 반대로 표기해야 함
+    # 2명중 1명과 8명중 1명이 동일한 순위이므로, 이를 반영한 상대 수치가 필요
+    
+    ranks = list(map(int, ranks))
+
+    if include_retire == False: # exclude retire
+        ranks = [i for i in ranks if i != 99]
+        
+    else: # manage retire as n_players + 1 (8 players -> 9)
+        for i in range(len(ranks)):
+            if ranks[i] == 99:
+                ranks[i] = 9
+    
+    x = np.linspace(1, len(ranks)+1, len(ranks))
+    y = ranks
+    plt.plot(x, y)
+    plt.gca().invert_yaxis()
+    plt.show()
+    
+    
+    
     
 
 ################### test code #####################
@@ -96,4 +117,4 @@ if __name__ == '__main__':
         match_type='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 200
         )
     
-    print(ranks)
+    plot_ranks(ranks, 8)
