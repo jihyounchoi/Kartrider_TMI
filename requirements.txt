@@ -1,0 +1,3 @@
+# packages in environment at /Users/healingmusic/opt/anaconda3/envs/Kartrider:
+#
+# Name                    Version                   Build  Channel
