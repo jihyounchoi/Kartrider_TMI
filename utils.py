@@ -149,17 +149,35 @@ def return_ranks(accountNo : str, start_date : str, end_date : str, match_type :
     matches = get_matchlist(accountNo, start_date, end_date, match_type = match_type, offset = offset, limit = limit)
     
     for match in matches:
-        ranks.append(match.player.matchRank)
+        rank = int(match.player.matchRank)
+        if rank == 99:
+            ranks.append(9)
+        else:
+            ranks.append(rank)
     
     return ranks
 
-def plot_ranks(ranks : list, n_players, include_retire : bool = False):
-    # 리타이어의 경우는 99로 표기되므로, 이를 적절히 표기하는 것이 중요
-    # 현재 구현 버전은 리타이어 기록을 아예 제거함
-    # 1등이 높은 것이므로, y axis를 반대로 표기해야 함
-    # 2명중 1명과 8명중 1명이 동일한 순위이므로, 이를 반영한 상대 수치가 필요
+def return_relative_ranks(accountNo : str, start_date : str, end_date : str, match_type : str, offset = 0, limit = 2):
+    ranks = []
+    matches = get_matchlist(accountNo, start_date, end_date, match_type = match_type, offset = offset, limit = limit)
     
-    ranks = list(map(int, ranks))
+    for match in matches:
+        rank = int(match.player.matchRank)
+        if rank == 99:
+            ranks.append(1)
+        else:
+            ranks.append(round(rank / match.playerCount, 2))
+    
+    return ranks
+
+def plot_ranks(ranks : list, n_players : int = 8, include_retire : bool = False):
+    """display rank graph
+    
+    Args:
+        ranks (list): list with ranks, elements are integer between 1 ~ n_players
+        n_players (int): maximum players (default = 8)
+        include_retire (bool, optional): Defaults to False (Not include Retire), True(interpret Retire as n_players + 1)
+    """
 
     if include_retire == False: # exclude retire
         ranks = [i for i in ranks if i != 99]
@@ -172,12 +190,9 @@ def plot_ranks(ranks : list, n_players, include_retire : bool = False):
     x = np.linspace(1, len(ranks)+1, len(ranks))
     y = ranks
     plt.plot(x, y)
-    plt.gca().invert_yaxis()
+    plt.gca().invert_yaxis() # 1등이 높은 순위이므로 y축의 scale을 반대로 변경
     plt.show()
-    
-    
-    
-    
+
 
 ################### test code #####################
 
@@ -201,21 +216,35 @@ if __name__ == '__main__':
     # end_date = '2022-09-04T08:40:24'
     # match_type = '7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a'
     
-    # basic get_user test
+    # basic test of get_user
     user = get_user_by_name('MOOOMOO'); print(user.name)
     user = get_user_by_accountNo(user.accountNo); print(user.name)
     
+    # test matchlist
     matchlist = get_matchlist(
-        accountNo=user.accountNo, start_date='2021-09-04T08:40:24', end_date='2022-09-04T08:40:24', \
-        match_type='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit=2
+        accountNo=user.accountNo, start_date='2020-09-04T08:40:24', end_date='2022-09-04T08:40:24',
+        match_type='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 100
         )
     
     for match in matchlist:
-        print(match.matchId)
+        print(match.playerCount)
     
+    # test return_ranks
     ranks = return_ranks(
-        accountNo='973305538', start_date='2021-09-04T08:40:24', end_date='2022-09-04T08:40:24', \
-        match_type='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 200
+        accountNo='973305538', start_date='2020-09-04T08:40:24', end_date='2022-09-04T08:40:24',
+        match_type='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 100
         )
     
+    print(ranks[27])
+    
+    # test return_relative_ranks
+    ranks = return_relative_ranks(
+        accountNo='973305538', start_date='2020-09-04T08:40:24', end_date='2022-09-04T08:40:24',
+        match_type='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 100
+        )
+    
+    print(ranks[27])
+    
+    
+    # test plot_ranks
     plot_ranks(ranks, 8, include_retire=True)
