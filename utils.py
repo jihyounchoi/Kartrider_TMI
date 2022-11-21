@@ -1,6 +1,7 @@
 import requests
 import json
 import matplotlib.pyplot as plt
+import numpy as np
 
 key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJYLUFwcC1SYXRlLUxpbWl0IjoiNTAwOjEwIiwiYWNjb3VudF9pZCI6Ijk3MzMwNTUzOCIsImF1dGhfaWQiOiIyIiwiZXhwIjoxNjgzMTkwNDYyLCJpYXQiOjE2Njc2Mzg0NjIsIm5iZiI6MTY2NzYzODQ2Miwic2VydmljZV9pZCI6IjQzMDAxMTM5MyIsInRva2VuX3R5cGUiOiJBY2Nlc3NUb2tlbiJ9.o4oNGosgyTmNuSt752GBIFQMozxKYkPLDkfGEKEEBMk'
 
@@ -69,7 +70,7 @@ def return_ranks(accessId : str, start_date : str, end_date : str, match_type : 
 def plot_ranks(ranks : list, n_players):
     # 리타이어의 경우는 99로 표기되므로, 이를 적절히 표기하는 것이 중요
     # 1등이 높은 것이므로, y axis를 반대로 표기해야 함
-    pass
+    
 
 ################### test code #####################
 
