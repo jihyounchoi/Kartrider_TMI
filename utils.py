@@ -69,6 +69,9 @@ class Match():
         self.player = Player(player_accountNo, player_characterName, player_character, player_kart, player_license, player_pet,
                              player_flyingPet, player_rankinggrade2, player_matchRank, player_matchRetired, player_matchWin, player_matchTime)
         
+        def __str__(self):
+            pass
+        
 class User():
     def __init__(self, accountNo, name, level) -> None:
         self.accountNo = accountNo
@@ -102,11 +105,11 @@ def unpack_userInfo(user):
     return user_instance
 
 
-def get_user_by_name(nickname, key = key):
+def get_user_by_nickName(nickName, key = key):
     
     headers = {'Authorization' : key}
     response = requests.get(
-        f'https://api.nexon.co.kr/kart/v1.0/users/nickname/{nickname}',
+        f'https://api.nexon.co.kr/kart/v1.0/users/nickname/{nickName}',
         headers=headers
     )
     
@@ -134,43 +137,69 @@ def get_user_by_accountNo(accountNo, key = key):
     )
     return unpack_userInfo(response.json())
 
-def get_matchlist(accountNo, start_date, end_date, match_type, offset = 0, limit = 2):
+def get_matchlist(accountNo, startTime, endTime, matchType, offset = 0, limit = 500):
     headers = {'Authorization' : key}
     response = requests.get(
-        f'https://api.nexon.co.kr/kart/v1.0/users/{accountNo}/matches?start_date={start_date}&end_date={end_date}&offset={offset}&limit={limit}&match_types={match_type}',
+        f'https://api.nexon.co.kr/kart/v1.0/users/{accountNo}/matches?start_date={startTime}&end_date={endTime}&offset={offset}&limit={limit}&match_types={matchType}',
         headers=headers
     )
     
     return unpack_matchInfo(response.json())
 
 # 기본기능 : 일정 기간의 순위 변동 그래프 (start_time, end_time, match_types)
-def return_ranks(accountNo : str, start_date : str, end_date : str, match_type : str, offset = 0, limit = 2):
+def get_ranks(matchlist, n_players : list, include_retire : bool = False):
     ranks = []
-    matches = get_matchlist(accountNo, start_date, end_date, match_type = match_type, offset = offset, limit = limit)
     
-    for match in matches:
-        rank = int(match.player.matchRank)
-        if rank == 99:
-            ranks.append(9)
-        else:
-            ranks.append(rank)
+    for match in matchlist:
+        if match.playerCount in n_players:
+            rank = int(match.player.matchRank)
+            
+            if rank == 99:
+                if include_retire == True:
+                    ranks.append(9)
+            else:
+                ranks.append(rank)
     
     return ranks
 
-def return_relative_ranks(accountNo : str, start_date : str, end_date : str, match_type : str, offset = 0, limit = 2):
+def get_relative_ranks(matchlist, include_retire: bool = False, include_single : bool = False):
     ranks = []
-    matches = get_matchlist(accountNo, start_date, end_date, match_type = match_type, offset = offset, limit = limit)
     
-    for match in matches:
+    for match in matchlist:
         rank = int(match.player.matchRank)
         if rank == 99:
-            ranks.append(1)
+            if include_retire == True:
+                ranks.append(1)
         else:
-            ranks.append(round(rank / match.playerCount, 2))
+            if match.playerCount == 1 and include_single == False:
+                continue
+            else:
+                ranks.append(round(rank / match.playerCount, 2))
     
     return ranks
 
-def plot_ranks(ranks : list, n_players : int = 8, include_retire : bool = False):
+def get_channelNames(matchlist):
+    # 채널 이름 : 횟수 의 Dictionary
+    # mode 이름은 알파벳 오름차순 (a ~ z) -> count 내림차순으로 변경 요망
+    
+    modes = []
+    for match in matchlist:
+        modes.append(match.channelName)
+        
+    modes_set = list(set(modes))
+    modes_set.sort()
+    
+    modecount = {}
+    
+    for mode in modes_set:
+        modecount[mode] = 0
+    
+    for mode in modes:
+        modecount[mode] += 1
+    
+    return modecount
+
+def plot_ranks(ranks : list, n_players : int = 8):
     """display rank graph
     
     Args:
@@ -179,20 +208,14 @@ def plot_ranks(ranks : list, n_players : int = 8, include_retire : bool = False)
         include_retire (bool, optional): Defaults to False (Not include Retire), True(interpret Retire as n_players + 1)
     """
 
-    if include_retire == False: # exclude retire
-        ranks = [i for i in ranks if i != 99]
-        
-    else: # manage retire as n_players + 1 (8 players -> 9)
-        for i in range(len(ranks)):
-            if ranks[i] == 99:
-                ranks[i] = 9
+    ranks = [i for i in ranks if i != 99]
     
     x = np.linspace(1, len(ranks)+1, len(ranks))
     y = ranks
     plt.plot(x, y)
     plt.gca().invert_yaxis() # 1등이 높은 순위이므로 y축의 scale을 반대로 변경
     plt.show()
-
+        
 
 ################### test code #####################
 
@@ -217,34 +240,48 @@ if __name__ == '__main__':
     # match_type = '7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a'
     
     # basic test of get_user
-    user = get_user_by_name('MOOOMOO'); print(user.name)
-    user = get_user_by_accountNo(user.accountNo); print(user.name)
+    
+    #user = get_user_by_nickName('MOOOMOO'); print(user.name)
+    #user = get_user_by_accountNo(user.accountNo); print(user.name)
     
     # test matchlist
-    matchlist = get_matchlist(
-        accountNo=user.accountNo, start_date='2020-09-04T08:40:24', end_date='2022-09-04T08:40:24',
-        match_type='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 100
-        )
     
-    for match in matchlist:
-        print(match.playerCount)
+    #matchlist = get_matchlist(
+    #    accountNo=user.accountNo, startTime='2020-09-04T08:40:24', endTime='2022-09-04T08:40:24',
+    #    matchType='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 100
+    #    )
+    
+    #for match in matchlist:
+    #    print(match)
     
     # test return_ranks
-    ranks = return_ranks(
-        accountNo='973305538', start_date='2020-09-04T08:40:24', end_date='2022-09-04T08:40:24',
-        match_type='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 100
-        )
-    
-    print(ranks[27])
+    # def return_ranks(accountNo : str, start_date : str, end_date : str, match_type : str, n_players : int = 8, include_retire : bool = False, offset = 0, limit = 2):
+    #ranks = get_ranks(
+    #    accountNo='973305538', startTime='2020-09-04T08:40:24', endTime='2022-09-04T08:40:24',
+    #    matchType='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', n_players = 8, limit = 100
+    #    )
     
     # test return_relative_ranks
-    ranks = return_relative_ranks(
-        accountNo='973305538', start_date='2020-09-04T08:40:24', end_date='2022-09-04T08:40:24',
-        match_type='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 100
-        )
+    #def return_relative_ranks(accountNo : str, start_date : str, end_date : str, match_type : str, 
+    #                     include_single : bool = False, include_retire : bool = False, offset = 0, limit = 2):
+    #ranks = get_relative_ranks(
+    #    accountNo='973305538', startTime='2020-09-04T08:40:24', endTime='2022-09-04T08:40:24',
+    #    matchType='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', include_single = False, 
+    #    include_retire = False, limit = 100
+    #    )
     
-    print(ranks[27])
+
+    matchlist = get_matchlist(accountNo='973305538', startTime='2018-09-04T08:40:24', endTime='2022-09-04T08:40:24',
+        matchType='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a')
     
+    print(get_channelNames(matchlist))
+    
+    
+    # # def get_ranks(matchlist, n_players : list, include_retire : bool = False):
+    # ranks = get_ranks(matchlist, [1, 2, 3, 4, 5, 6, 7, 8], include_retire=False)
+    
+    # # def get_relative_ranks(matchlist, include_retire: bool = False, include_single : bool = False):
+    # ranks = get_relative_ranks(matchlist, include_retire=False, include_single=False)
     
     # test plot_ranks
-    plot_ranks(ranks, 8, include_retire=True)
+    # plot_ranks(ranks, 8)
