@@ -146,7 +146,7 @@ def get_matchlist(accountNo, startTime, endTime, matchType, offset = 0, limit = 
     
     return unpack_matchInfo(response.json())
 
-# 기본기능 : 일정 기간의 순위 변동 그래프 (start_time, end_time, match_types)
+# 기본기능 : matchlist 객체를 받으면, rank 정보 추출
 def get_ranks(matchlist, n_players : list, include_retire : bool = False):
     ranks = []
     
@@ -178,7 +178,7 @@ def get_relative_ranks(matchlist, include_retire: bool = False, include_single :
     
     return ranks
 
-def get_channelNames(matchlist):
+def get_channelNames(matchlist, ascending = False):
     # 채널 이름 : 횟수 의 Dictionary
     # mode 이름은 알파벳 오름차순 (a ~ z) -> count 내림차순으로 변경 요망
     
@@ -196,6 +196,13 @@ def get_channelNames(matchlist):
     
     for mode in modes:
         modecount[mode] += 1
+    
+    if ascending == False:
+        modecount = sorted(modecount.items(), key = lambda item: item[1], reverse = True)
+    else:
+        modecount = sorted(modecount.items(), key = lambda item: item[1], reverse = False)
+        
+    modecount = dict(modecount)
     
     return modecount
 
@@ -215,7 +222,6 @@ def plot_ranks(ranks : list, n_players : int = 8):
     plt.plot(x, y)
     plt.gca().invert_yaxis() # 1등이 높은 순위이므로 y축의 scale을 반대로 변경
     plt.show()
-        
 
 ################### test code #####################
 
@@ -233,55 +239,12 @@ def plot_ranks(ranks : list, n_players : int = 8):
 '''
 
 if __name__ == '__main__':
-    # Test Environment
-    # accountNo = '973305588'
-    # start_date = '2021-09-04T08:40:24'
-    # end_date = '2022-09-04T08:40:24'
-    # match_type = '7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a'
-    
-    # basic test of get_user
-    
-    #user = get_user_by_nickName('MOOOMOO'); print(user.name)
-    #user = get_user_by_accountNo(user.accountNo); print(user.name)
-    
-    # test matchlist
-    
-    #matchlist = get_matchlist(
-    #    accountNo=user.accountNo, startTime='2020-09-04T08:40:24', endTime='2022-09-04T08:40:24',
-    #    matchType='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', limit = 100
-    #    )
-    
-    #for match in matchlist:
-    #    print(match)
-    
-    # test return_ranks
-    # def return_ranks(accountNo : str, start_date : str, end_date : str, match_type : str, n_players : int = 8, include_retire : bool = False, offset = 0, limit = 2):
-    #ranks = get_ranks(
-    #    accountNo='973305538', startTime='2020-09-04T08:40:24', endTime='2022-09-04T08:40:24',
-    #    matchType='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', n_players = 8, limit = 100
-    #    )
-    
-    # test return_relative_ranks
-    #def return_relative_ranks(accountNo : str, start_date : str, end_date : str, match_type : str, 
-    #                     include_single : bool = False, include_retire : bool = False, offset = 0, limit = 2):
-    #ranks = get_relative_ranks(
-    #    accountNo='973305538', startTime='2020-09-04T08:40:24', endTime='2022-09-04T08:40:24',
-    #    matchType='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', include_single = False, 
-    #    include_retire = False, limit = 100
-    #    )
-    
-
+    # 스피드 개인전의 최근 1년 매치리스트 추출
     matchlist = get_matchlist(accountNo='973305538', startTime='2018-09-04T08:40:24', endTime='2022-09-04T08:40:24',
         matchType='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a')
-    
-    print(get_channelNames(matchlist))
-    
-    
-    # # def get_ranks(matchlist, n_players : list, include_retire : bool = False):
-    # ranks = get_ranks(matchlist, [1, 2, 3, 4, 5, 6, 7, 8], include_retire=False)
-    
-    # # def get_relative_ranks(matchlist, include_retire: bool = False, include_single : bool = False):
-    # ranks = get_relative_ranks(matchlist, include_retire=False, include_single=False)
-    
-    # test plot_ranks
-    # plot_ranks(ranks, 8)
+
+    # 해당 matchlist에서 rank 추출
+    ranks : list = get_ranks(matchlist, n_players = [8], include_retire=False)
+
+    # rank값 plot
+    plot_ranks(ranks=ranks)
