@@ -186,6 +186,8 @@ def get_matchlist(accountNo : str, startTime : str, endTime : str, matchType : s
         headers=headers
     )
     
+    print(response.json())
+    
     return unpack_matchInfo(response.json())
     
 def get_matchInfo(matchId : str):
@@ -348,7 +350,7 @@ if __name__ == '__main__':
     matchlist = get_matchlist(
         accountNo = accountNo, startTime = '', endTime = '', # startTime, endTime을 따로 지정하지 않는 경우, 자동으로 최근 500건의 매치를 받아옵니다.
         matchType='7b9f0fd5377c38514dbb78ebe63ac6c3b81009d5a31dd569d1cff8f005aa881a', # matchType : 스피드 개인전
-        limit = 100
+        limit = 10
         )
     
     # for match in matchlist:
